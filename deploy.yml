@@ -38,12 +38,8 @@
   hosts: yuzu
   become: true
 
-  vars:
-    nginx_rtmp_host: localhost
-    stream_width: 1280
-    stream_height: 720
-    stream_framerate: 30
-    stream_path: live/stream
+  # The vars defined in inventory.ini will be used instead
+  # of these hardcoded values
 
   tasks:
     - name: Update and upgrade apt packages

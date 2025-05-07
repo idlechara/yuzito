@@ -11,23 +11,23 @@ STREAM_PATH=${STREAM_PATH:-live/stream}
 echo "[INFO] Starting camera streaming service (${STREAM_WIDTH}x${STREAM_HEIGHT}@${STREAM_FRAMERATE}fps)"
 
 # Wait for NGINX RTMP server to be ready, with less frequent messages
-echo "[INFO] Checking NGINX RTMP server..."
+echo "[INFO] Checking NGINX RTMP server at $NGINX_RTMP_HOST:1935..."
 retry_count=0
 max_retries=120
 until nc -z $NGINX_RTMP_HOST 1935; do
     retry_count=$((retry_count+1))
     if [ $((retry_count % 5)) -eq 0 ]; then
-        echo "[INFO] Waiting for NGINX RTMP server... (attempt $retry_count/$max_retries)"
+        echo "[INFO] Waiting for NGINX RTMP server at $NGINX_RTMP_HOST:1935... (attempt $retry_count/$max_retries)"
     fi
     
     if [ $retry_count -ge $max_retries ]; then
-        echo "[ERROR] NGINX RTMP server did not respond after $max_retries attempts"
+        echo "[ERROR] NGINX RTMP server at $NGINX_RTMP_HOST:1935 did not respond after $max_retries attempts"
         exit 1
     fi
     
     sleep 2
 done
-echo "[INFO] NGINX RTMP server ready"
+echo "[INFO] NGINX RTMP server at $NGINX_RTMP_HOST:1935 ready"
 
 # Function to detect camera system
 detect_camera_system() {
