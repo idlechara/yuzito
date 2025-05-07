@@ -21,9 +21,9 @@
 		}
 	},
 
-	// Mount SSH keys from the host
+	// Mount SSH keys from the host with vscode ownership
 	"mounts": [
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached"
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached,uid=1000,gid=1000"
 	],
 	
 	// Fix permissions for SSH keys after container creation
