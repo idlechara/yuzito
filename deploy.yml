@@ -1,0 +1,95 @@
+---
+- name: Ensure SSH key exists locally
+  hosts: localhost
+  tasks:
+    - name: Check if SSH key exists
+      stat:
+        path: ~/.ssh/id_rsa.pub
+      register: ssh_key
+
+    - name: Generate SSH key if it does not exist
+      command: ssh-keygen -t rsa -b 2048 -f ~/.ssh/id_rsa -N ""
+      when: not ssh_key.stat.exists
+
+    - name: Install sshpass locally for password-based SSH authentication
+      become: true
+      apt:
+        name: sshpass
+        state: present
+
+- name: Install SSH key on inventory hosts
+  hosts: yuzu
+  tasks:
+    - name: Check if public key is already installed
+      authorized_key:
+        user: alice
+        state: present
+        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+      register: key_installed
+
+    - name: Install public key if not present
+      authorized_key:
+        user: alice
+        state: present
+        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+      when: not key_installed.changed
+
+- name: Deploy camera streaming service on Raspberry Pi
+  hosts: yuzu
+  become: true
+
+  vars:
+    nginx_rtmp_host: localhost
+    stream_width: 1280
+    stream_height: 720
+    stream_framerate: 30
+    stream_path: live/stream
+
+  tasks:
+    - name: Update and upgrade apt packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Install required packages
+      apt:
+        name:
+          - ffmpeg
+          - ncdu
+        state: present
+
+    - name: Copy the streaming script to the Raspberry Pi
+      copy:
+        src: stream.sh
+        dest: /usr/local/bin/stream.sh
+        mode: '0755'
+
+    - name: Create a systemd service for the streaming script
+      copy:
+        dest: /etc/systemd/system/stream.service
+        content: |
+          [Unit]
+          Description=Camera Streaming Service
+          After=network.target
+
+          [Service]
+          Environment=NGINX_RTMP_HOST={{ nginx_rtmp_host }}
+          Environment=STREAM_WIDTH={{ stream_width }}
+          Environment=STREAM_HEIGHT={{ stream_height }}
+          Environment=STREAM_FRAMERATE={{ stream_framerate }}
+          Environment=STREAM_PATH={{ stream_path }}
+          ExecStart=/usr/local/bin/stream.sh
+          Restart=always
+          User=root
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd to apply the new service
+      command: systemctl daemon-reload
+
+    - name: Enable and start the streaming service
+      systemd:
+        name: stream.service
+        enabled: yes
+        state: started
